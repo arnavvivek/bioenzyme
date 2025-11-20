@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio-Enzyme Algae Lab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Styles for Bio-Enzyme Theme */
+        :root {
+            --primary-color: #0f172a; /* Deep Navy/Slate */
+            --accent-color: #4ade80; /* Bright Green for Algae/Bio theme */
+            --success-color: #22c55e; /* Green for Success */
+            --warning-color: #fbbf24; /* Amber for Metrics */
+            --text-color: #f1f5f9; /* Slate-100 */
+            --subtle-text: #94a3b8; /* Slate-400 */
+            --contaminant-color: #451a03; /* Deep Brown */
+            --oxygen-bubble-color: rgba(255, 255, 255, 0.9); /* White Oxygen Bubbles */
+            --algae-color: rgba(74, 222, 128, 0.85); /* Bio Green */
+            --glass-color: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --highlight-color: rgba(255, 255, 255, 0.15); 
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 950px;
+            width: 95%;
+            max-height: calc(100vh - 20px); 
+            overflow-y: auto;
+            background-color: #1e293b; /* Slate-800 */
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+        }
+
+        .card {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0.75rem;
+            padding: 20px;
+            background-color: #334155; /* Slate-700 */
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            background-color: #0f172a;
+            border-radius: 0.5rem;
+            width: 100%; 
+            height: auto;
+            aspect-ratio: 2 / 1.3; /* Adjusted aspect ratio */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
+        }
+
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: #064e3b; /* Dark Green Text */
+            padding: 12px 24px;
+            border-radius: 0.75rem;
+            font-weight: 800;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(74, 222, 128, 0.4);
+        }
+
+        .progress-bar-container {
+            height: 12px;
+            background-color: #475569;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--success-color);
+            transition: width 0.5s ease-out;
+        }
+
+        .metric-gauge {
+            width: 100%;
+            height: 8px;
+            background-color: #475569;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .metric-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--warning-color);
+            transition: width 0.5s ease-out;
+        }
+
+        .container::-webkit-scrollbar { width: 8px; }
+        .container::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+        .container::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+    </style>
+</head>
+<body class="selection:bg-green-500 selection:text-white">
+
+    <div class="container">
+        <h1 class="text-2xl sm:text-4xl font-extrabold text-center mb-3 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600">
+            Bio-Enzyme Cleaning Lab
+        </h1>
+        <p class="text-center text-xs sm:text-sm mb-4 text-subtle-text">Project: Algae-Based Oxygenation & Enzymatic Breakdown</p>
+
+        <!-- Main Content Area -->
+        <div class="card p-4 sm:p-6">
+            <canvas id="experimentCanvas" width="800" height="520"></canvas>
+            
+            <!-- Step 1: Setup Screen -->
+            <div id="setupDiv" class="text-center py-4">
+                <h2 class="text-xl sm:text-2xl font-semibold text-text-color mb-3">SETUP: Bio-Reactor Activation</h2>
+                <p class="mb-5 text-sm sm:text-base text-subtle-text">Hypothesis: <strong>Chlorella Algae</strong> enzymes release oxygen micro-bubbles that degrade surface contaminants more effectively than chemical agents.</p>
+                
+                <div class="flex flex-col sm:flex-row justify-center items-center gap-6 mb-6 text-left">
+                    <div class="w-full sm:w-1/2 p-4 bg-slate-800/50 rounded-lg shadow-inner border border-slate-600">
+                        <label for="algaeType" class="block text-sm font-medium text-accent-color mb-2">Select Algae Strain:</label>
+                        <select id="algaeType" class="w-full p-2 rounded-md bg-slate-700 text-text-color border border-slate-600 focus:ring-green-500 focus:border-green-500 outline-none">
+                            <option value="dormant">Dormant Culture (Control)</option>
+                            <option value="active" selected>Activated Green Algae (High Oxygen)</option>
+                            <option value="hyper">Hyper-Enzymatic Strain (Experimental)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="startButton" class="btn-primary" onclick="startExperiment()">
+                    Activate Bio-Reactor
+                </button>
+            </div>
+
+            <!-- Step 2: Running Screen -->
+            <div id="runningDiv" class="hidden text-center py-1">
+                <h2 class="text-lg sm:text-xl font-semibold text-accent-color mb-2">BIO-REACTION IN PROGRESS...</h2>
+                <div class="progress-bar-container mb-2">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <p id="phaseStatus" class="text-sm sm:text-lg font-mono text-success-color mb-3 h-12 flex items-center justify-center"></p>
+
+                <!-- Live Metrics -->
+                <div class="flex flex-wrap justify-center sm:justify-around items-start mt-3 mb-1 gap-4">
+                    <div class="w-full sm:w-5/12 text-left p-3 rounded-lg bg-slate-800/50 border border-slate-600">
+                        <span class="text-sm font-bold block text-subtle-text mb-1">Enzyme Activity (U/mL)</span>
+                        <div class="metric-gauge">
+                            <div id="metric1Gauge" class="metric-fill"></div>
+                        </div>
+                        <span id="metric1Value" class="text-xs text-warning-color mt-1 block font-mono">0 U/mL</span>
+                    </div>
+                    <div class="w-full sm:w-5/12 text-left p-3 rounded-lg bg-slate-800/50 border border-slate-600">
+                        <span class="text-sm font-bold block text-subtle-text mb-1">Dissolved Oxygen (DO)</span>
+                        <div class="metric-gauge">
+                            <div id="metric2Gauge" class="metric-fill"></div>
+                        </div>
+                        <span id="metric2Value" class="text-xs text-warning-color mt-1 block font-mono">0 mg/L</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Results Screen -->
+            <div id="resultsDiv" class="hidden text-center py-4">
+                <h2 id="resultTitle" class="text-xl sm:text-2xl font-bold text-success-color mb-3">BIO-CLEANING COMPLETE</h2>
+                <p class="mb-5 text-subtle-text">Analysis of Your Experiment</p>
+                <button class="btn-primary" onclick="restartExperiment()">
+                    Reset Lab
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- Canvas and DOM Setup ---
+        const canvas = document.getElementById('experimentCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const setupDiv = document.getElementById('setupDiv');
+        const runningDiv = document.getElementById('runningDiv');
+        const resultsDiv = document.getElementById('resultsDiv');
+        const resultTitle = document.getElementById('resultTitle');
+        const phaseStatus = document.getElementById('phaseStatus');
+        const progressBar = document.getElementById('progressBar');
+        const algaeSelect = document.getElementById('algaeType');
+
+        const metric1Gauge = document.getElementById('metric1Gauge');
+        const metric1Value = document.getElementById('metric1Value');
+        const metric2Gauge = document.getElementById('metric2Gauge');
+        const metric2Value = document.getElementById('metric2Value');
+
+        // --- Color Constants ---
+        const ACCENT_COLOR = '#4ade80';
+        const PRIMARY_COLOR = '#0f172a';
+        const CONTAMINANT_COLOR = '#451a03';
+        const BUBBLE_COLOR = 'rgba(255, 255, 255, 0.95)'; 
+        const ALGAE_COLOR = 'rgba(74, 222, 128, 0.9)'; 
+        const WATER_COLOR_TOP = 'rgba(255, 255, 255, 0.15)';
+        const WATER_COLOR_BOT = 'rgba(255, 255, 255, 0.05)';
+        const TEXT_COLOR = '#f1f5f9';
+        const GLASS_COLOR = 'rgba(255, 255, 255, 0.05)'; 
+        const GLASS_STROKE = 'rgba(255, 255, 255, 0.6)';
+        const HIGHLIGHT_COLOR = 'rgba(255, 255, 255, 0.2)';
+
+        // --- Simulation Logic & Data ---
+        const experimentPhases = [
+            'Phase 1: Algae Photosynthesis & Enzyme Secretion...',
+            'Phase 2: Oxygen Bubble Nucleation in Reactor...',
+            'Phase 3: Surface Bio-Degradation & Cleaning...'
+        ];
+
+        // Configuration for each strain selection
+        const strainConfig = {
+            'dormant': { 
+                bubbleChance: 0.05, // Very few bubbles
+                cleaningRate: 0.015, // Barely cleans
+                metric1: { width: '15%', text: '45 U/mL' },
+                metric2: { width: '20%', text: '1.2 mg/L' },
+                // Result Data
+                avgEfficiency: 15,
+                timeTaken: '45s (Timeout)',
+                oxygenLevel: 'Low',
+                grade: 'D'
+            },
+            'active': { 
+                bubbleChance: 0.5, // Normal flow
+                cleaningRate: 0.15, // Good cleaning
+                metric1: { width: '80%', text: '450 U/mL' },
+                metric2: { width: '92%', text: '8.4 mg/L' },
+                // Result Data
+                avgEfficiency: 94,
+                timeTaken: '12.4s',
+                oxygenLevel: 'Optimal',
+                grade: 'A'
+            },
+            'hyper': { 
+                bubbleChance: 0.9, // Intense flow
+                cleaningRate: 0.35, // Super fast cleaning
+                metric1: { width: '98%', text: '980 U/mL' },
+                metric2: { width: '99%', text: '14.5 mg/L' },
+                // Result Data
+                avgEfficiency: 99,
+                timeTaken: '6.8s',
+                oxygenLevel: 'Extreme',
+                grade: 'A+'
+            }
+        };
+
+        const resultsData = {
+            'dormant': { efficiency: 15, color: '#94a3b8' }, 
+            'active': { efficiency: 94, color: '#4ade80' }, 
+            'hyper': { efficiency: 99, color: '#a3e635' }   
+        };
+
+        let currentStrain = 'active'; // Default state
+        let bubbles = [];
+        let algaeParticles = []; 
+        let debrisParticles = []; 
+        let contaminantHeight = 60;
+        let maxContaminantHeight = 60;
+        let animationFrameId = null;
+        let simulationRunning = false;
+        
+        // --- Geometry Configurations ---
+        const beaker = { w: 240, h: 280, x: 400, y: 40, r: 10, rimH: 15 };
+        const reactor = { w: 280, h: 120, x: 400, y: 360, r: 20 };
+        const tube = { w: 24, h: 40 };
+
+        // --- Graphics Functions ---
+
+        function drawGraduations(x, y, h) {
+            ctx.fillStyle = GLASS_STROKE;
+            ctx.textAlign = 'right';
+            ctx.font = '10px Inter';
+            
+            const startY = y + h - 30; 
+            const endY = y + 40; 
+            const steps = 5;
+            const stepSize = (startY - endY) / steps;
+
+            for(let i = 0; i <= steps; i++) {
+                const lineY = startY - (i * stepSize);
+                const vol = 100 + (i * 100); 
+                
+                ctx.globalAlpha = 0.6;
+                ctx.fillRect(x - 25, lineY, 15, 2); 
+                ctx.fillText(vol + 'ml', x - 30, lineY + 3);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function drawGlasswarePath(isOutline) {
+            ctx.beginPath();
+            const rimOverhang = 10;
+            ctx.moveTo(beaker.x - beaker.w/2 - rimOverhang, beaker.y);
+            ctx.lineTo(beaker.x - beaker.w/2, beaker.y + beaker.rimH);
+            ctx.lineTo(beaker.x - beaker.w/2, beaker.y + beaker.h - beaker.r);
+            ctx.quadraticCurveTo(beaker.x - beaker.w/2, beaker.y + beaker.h, beaker.x - beaker.w/2 + beaker.r, beaker.y + beaker.h);
+            ctx.lineTo(beaker.x - tube.w/2, beaker.y + beaker.h);
+            ctx.lineTo(beaker.x - tube.w/2, beaker.y + beaker.h + tube.h);
+            
+            ctx.lineTo(reactor.x - reactor.w/2 + reactor.r, reactor.y);
+            ctx.quadraticCurveTo(reactor.x - reactor.w/2, reactor.y, reactor.x - reactor.w/2, reactor.y + reactor.r);
+            ctx.lineTo(reactor.x - reactor.w/2, reactor.y + reactor.h - reactor.r);
+            ctx.quadraticCurveTo(reactor.x - reactor.w/2, reactor.y + reactor.h, reactor.x - reactor.w/2 + reactor.r, reactor.y + reactor.h);
+            ctx.lineTo(reactor.x + reactor.w/2 - reactor.r, reactor.y + reactor.h);
+            ctx.quadraticCurveTo(reactor.x + reactor.w/2, reactor.y + reactor.h, reactor.x + reactor.w/2, reactor.y + reactor.h - reactor.r);
+            ctx.lineTo(reactor.x + reactor.w/2, reactor.y + reactor.r);
+            ctx.quadraticCurveTo(reactor.x + reactor.w/2, reactor.y, reactor.x + reactor.w/2 - reactor.r, reactor.y);
+            
+            ctx.lineTo(beaker.x + tube.w/2, beaker.y + beaker.h + tube.h);
+            ctx.lineTo(beaker.x + tube.w/2, beaker.y + beaker.h);
+            
+            ctx.lineTo(beaker.x + beaker.w/2 - beaker.r, beaker.y + beaker.h);
+            ctx.quadraticCurveTo(beaker.x + beaker.w/2, beaker.y + beaker.h, beaker.x + beaker.w/2, beaker.y + beaker.h - beaker.r);
+            ctx.lineTo(beaker.x + beaker.w/2, beaker.y + beaker.rimH);
+            ctx.lineTo(beaker.x + beaker.w/2 + rimOverhang + 5, beaker.y - 5); 
+            ctx.lineTo(beaker.x + beaker.w/2 + rimOverhang, beaker.y); 
+            ctx.closePath();
+        }
+        
+        function initAlgae() {
+            algaeParticles = [];
+            for(let i=0; i<80; i++) {
+                algaeParticles.push({
+                    x: reactor.x - (reactor.w/2 - 15) + Math.random() * (reactor.w - 30),
+                    y: reactor.y + 15 + Math.random() * (reactor.h - 30),
+                    r: 2 + Math.random() * 4,
+                    opacity: 0.4 + Math.random() * 0.5
+                });
+            }
+        }
+
+        function spawnDebris(x, y) {
+            const count = 3 + Math.floor(Math.random() * 3);
+            for(let i=0; i<count; i++) {
+                debrisParticles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: -Math.random() * 2 - 0.5,
+                    r: Math.random() * 3 + 1,
+                    opacity: 1.0,
+                    decay: 0.01 + Math.random() * 0.02
+                });
+            }
+        }
+
+        function updateDebris() {
+            for(let i = debrisParticles.length - 1; i >= 0; i--) {
+                let d = debrisParticles[i];
+                d.x += d.vx;
+                d.y += d.vy;
+                d.opacity -= d.decay;
+                d.vx *= 0.95;
+                if(d.opacity <= 0) {
+                    debrisParticles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawDebris() {
+            ctx.fillStyle = CONTAMINANT_COLOR;
+            for(let d of debrisParticles) {
+                ctx.save();
+                ctx.globalAlpha = d.opacity;
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawAlgae() {
+            ctx.fillStyle = '#14532d'; 
+            for(let p of algaeParticles) {
+                ctx.save();
+                ctx.globalAlpha = p.opacity;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawScene() {
+            ctx.fillStyle = PRIMARY_COLOR;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Liquids
+            ctx.save();
+            drawGlasswarePath();
+            ctx.clip();
+
+            const reactorGrad = ctx.createLinearGradient(0, reactor.y, 0, reactor.y + reactor.h);
+            reactorGrad.addColorStop(0, ALGAE_COLOR);
+            reactorGrad.addColorStop(1, '#14532d'); 
+            ctx.fillStyle = reactorGrad;
+            ctx.fillRect(reactor.x - reactor.w/2, reactor.y, reactor.w, reactor.h);
+            drawAlgae();
+            
+            ctx.fillStyle = ALGAE_COLOR;
+            ctx.fillRect(beaker.x - tube.w/2, beaker.y + beaker.h, tube.w, tube.h);
+
+            // Dynamic Water Clarity
+            const pollutionRatio = contaminantHeight / maxContaminantHeight;
+            const r = Math.round(200 - (100 * pollutionRatio));
+            const g = Math.round(240 - (160 * pollutionRatio));
+            const b = Math.round(255 - (195 * pollutionRatio));
+            const a = 0.15 + (0.45 * pollutionRatio);
+            
+            const dynamicWaterColor = `rgba(${r}, ${g}, ${b}, ${a})`;
+            const waterGradient = ctx.createLinearGradient(0, beaker.y + beaker.h, 0, beaker.y);
+            waterGradient.addColorStop(0, dynamicWaterColor);
+            waterGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${a*0.5})`);
+            
+            ctx.fillStyle = waterGradient;
+            ctx.fillRect(beaker.x - beaker.w/2, beaker.y, beaker.w, beaker.h);
+
+            ctx.fillStyle = CONTAMINANT_COLOR;
+            const contaminantY = beaker.y + beaker.h - contaminantHeight;
+            ctx.fillRect(beaker.x - beaker.w/2, contaminantY, beaker.w, contaminantHeight);
+
+            drawDebris(); 
+            drawBubbles();
+            ctx.restore();
+
+            // 2. Glass Outline
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = GLASS_STROKE;
+            ctx.fillStyle = GLASS_COLOR;
+            drawGlasswarePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(beaker.x - beaker.w/2 + 15, beaker.y + 30);
+            ctx.lineTo(beaker.x - beaker.w/2 + 15, beaker.y + beaker.h - 20);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = HIGHLIGHT_COLOR;
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(reactor.x - reactor.w/2 + 20, reactor.y + 20);
+            ctx.arc(reactor.x - reactor.w/2 + 20, reactor.y + 20, 10, Math.PI, 1.5 * Math.PI);
+            ctx.stroke();
+            ctx.restore();
+
+            drawGraduations(beaker.x + beaker.w/2, beaker.y, beaker.h);
+
+            ctx.fillStyle = TEXT_COLOR;
+            ctx.font = '14px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Standard Griffin Beaker', beaker.x, beaker.y - 15);
+            ctx.fillStyle = ACCENT_COLOR;
+            ctx.fillText('Algae Culture Tank', reactor.x, reactor.y + reactor.h + 25);
+        }
+
+        function createBubble() {
+            const startInReactor = Math.random() > 0.1; 
+            let x, y;
+            if (startInReactor) {
+                x = reactor.x - (reactor.w/2 - 20) + Math.random() * (reactor.w - 40);
+                y = reactor.y + reactor.h - 10;
+            } else {
+                x = beaker.x;
+                y = beaker.y + beaker.h + tube.h;
+            }
+            return {
+                x: x, y: y,
+                radius: 2 + Math.random() * 4,
+                speed: 2 + Math.random() * 2.5, 
+                bursting: false, burstTimer: 0
+            };
+        }
+
+        function updateBubbles() {
+            const cleaningSurfaceY = beaker.y + beaker.h - contaminantHeight;
+            const tubeLeft = beaker.x - tube.w/2;
+            const tubeRight = beaker.x + tube.w/2;
+            
+            // DYNAMIC: Use the cleaning rate of the current strain
+            const cleaningRate = strainConfig[currentStrain].cleaningRate; 
+
+            for (let i = bubbles.length - 1; i >= 0; i--) {
+                const b = bubbles[i];
+                b.y -= b.speed;
+
+                if (b.y > beaker.y + beaker.h + tube.h) {
+                    if (b.x < tubeLeft + 2 || b.x > tubeRight - 2) {
+                        if (b.y < reactor.y + 5) {
+                            b.y = reactor.y + 5; 
+                            if (b.x < beaker.x) b.x += 1.5; else b.x -= 1.5;
+                        }
+                    }
+                }
+                
+                if (b.y < beaker.y + beaker.h) {
+                    if (b.y <= cleaningSurfaceY && b.y > cleaningSurfaceY - 10 && !b.bursting) {
+                        b.bursting = true;
+                        b.burstTimer = 8;
+                        contaminantHeight = Math.max(5, contaminantHeight - cleaningRate); 
+                        spawnDebris(b.x, b.y);
+                    }
+                }
+
+                if (b.bursting) {
+                    b.burstTimer--;
+                    if (b.burstTimer <= 0) bubbles.splice(i, 1);
+                } 
+                else if (b.y < beaker.y) {
+                    bubbles.splice(i, 1);
+                }
+            }
+            updateDebris();
+        }
+
+        function drawBubbles() {
+            for (const b of bubbles) {
+                if (b.bursting) {
+                    ctx.fillStyle = `rgba(255, 255, 200, ${b.burstTimer / 8})`;
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius * 3, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = BUBBLE_COLOR;
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        // --- Experiment Logic ---
+
+        function startExperiment() {
+            // 1. CAPTURE USER SELECTION
+            currentStrain = algaeSelect.value;
+            console.log(`Starting simulation with strain: ${currentStrain}`);
+
+            setupDiv.classList.add('hidden');
+            resultsDiv.classList.add('hidden');
+            runningDiv.classList.remove('hidden');
+
+            simulationRunning = true;
+            contaminantHeight = 60; 
+            bubbles = [];
+            debrisParticles = []; 
+            initAlgae(); 
+            
+            let phaseIndex = 0;
+            const totalDuration = 12000; 
+            const phaseInterval = totalDuration / experimentPhases.length;
+
+            animate();
+
+            const phaseTimer = setInterval(() => {
+                if (phaseIndex < experimentPhases.length) {
+                    phaseStatus.innerHTML = experimentPhases[phaseIndex];
+                    progressBar.style.width = `${((phaseIndex + 1) / experimentPhases.length) * 100}%`;
+                    
+                    // DYNAMIC: Update Metrics based on Selection Config
+                    const config = strainConfig[currentStrain];
+                    
+                    if (phaseIndex === 0) {
+                        metric1Gauge.style.width = config.metric1.width;
+                        metric1Value.textContent = config.metric1.text;
+                    } else if (phaseIndex === 1) {
+                        metric2Gauge.style.width = config.metric2.width;
+                        metric2Value.textContent = config.metric2.text;
+                    }
+                    phaseIndex++;
+                } else {
+                    clearInterval(phaseTimer);
+                }
+            }, phaseInterval);
+
+            setTimeout(() => {
+                simulationRunning = false;
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                runningDiv.classList.add('hidden');
+                resultsDiv.classList.remove('hidden');
+                drawResults();
+            }, totalDuration);
+        }
+
+        function animate() {
+            if (!simulationRunning) return;
+            
+            // DYNAMIC: Bubble chance depends on strain
+            const chance = strainConfig[currentStrain].bubbleChance;
+            
+            if (Math.random() < chance) { 
+                 bubbles.push(createBubble());
+                 // Hyper mode shoots extra bubbles
+                 if(currentStrain === 'hyper') bubbles.push(createBubble());
+            }
+            
+            updateBubbles();
+            drawScene();
+            animationFrameId = requestAnimationFrame(animate);
+        }
+        
+        function restartExperiment() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            bubbles = [];
+            debrisParticles = [];
+            contaminantHeight = 60;
+            simulationRunning = false;
+            initAlgae(); 
+            
+            setupDiv.classList.remove('hidden');
+            runningDiv.classList.add('hidden');
+            resultsDiv.classList.add('hidden');
+            
+            progressBar.style.width = '0%';
+            metric1Gauge.style.width = '0%';
+            metric1Value.textContent = '0 U/mL';
+            metric2Gauge.style.width = '0%';
+            metric2Value.textContent = '0 mg/L';
+            
+            drawScene();
+        }
+        
+        function drawResults() {
+             ctx.fillStyle = PRIMARY_COLOR;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Get data for the SINGLE selected strain
+            const config = strainConfig[currentStrain];
+            const efficiency = config.avgEfficiency; 
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // --- DRAW CARD BACKGROUND ---
+            // FIXED: Increased width from 500 to 580 to prevent text overflow
+            const cardW = 580;
+            const cardH = 300;
+            ctx.fillStyle = '#1e293b'; // Slate-800
+            ctx.strokeStyle = GLASS_STROKE;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(centerX - cardW/2, centerY - cardH/2, cardW, cardH, 20);
+            ctx.fill();
+            ctx.stroke();
+
+            // --- 1. CIRCULAR EFFICIENCY GAUGE (Left Side) ---
+            // Move gauge slightly left to balance the wider card
+            const gaugeX = centerX - 140; 
+            const gaugeY = centerY - 15; 
+            const radius = 75; 
+            
+            // Track Background
+            ctx.beginPath();
+            ctx.arc(gaugeX, gaugeY, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 12; 
+            ctx.stroke();
+            
+            // Active Progress
+            const startAngle = -Math.PI / 2;
+            const endAngle = startAngle + (Math.PI * 2 * (efficiency / 100));
+            ctx.beginPath();
+            ctx.arc(gaugeX, gaugeY, radius, startAngle, endAngle);
+            ctx.strokeStyle = ACCENT_COLOR;
+            ctx.lineWidth = 12;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // Percentage Text 
+            ctx.fillStyle = TEXT_COLOR;
+            ctx.font = 'bold 42px Inter'; 
+            ctx.textAlign = 'center';
+            ctx.fillText(`${efficiency}%`, gaugeX, gaugeY + 15); 
+            
+            // Label Text 
+            ctx.font = '14px Inter';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText("Contaminant Removed", gaugeX, gaugeY + radius + 30);
+
+            // --- 2. DETAILED METRICS (Right Side) ---
+            // Start slightly further left relative to the new center to utilize space
+            const statsX = centerX + 10; 
+            const statsY = centerY - 60;
+            
+            ctx.textAlign = 'left';
+            
+            // Header
+            ctx.font = 'bold 20px Inter';
+            ctx.fillStyle = ACCENT_COLOR;
+            ctx.fillText(currentStrain.toUpperCase() + " REPORT", statsX, statsY);
+            
+            // Divider - Extended length
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(statsX, statsY + 10, 240, 2);
+            
+            // Stat 1: Time
+            ctx.font = '14px Inter';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText("Processing Time:", statsX, statsY + 40);
+            ctx.font = 'bold 16px Inter';
+            ctx.fillStyle = TEXT_COLOR;
+            // Increased gap slightly for cleaner look, but now fits due to wider card
+            ctx.fillText(config.timeTaken, statsX + 150, statsY + 40);
+            
+            // Stat 2: Oxygen
+            ctx.font = '14px Inter';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText("Oxygen Saturation:", statsX, statsY + 70);
+            ctx.font = 'bold 16px Inter';
+            ctx.fillStyle = TEXT_COLOR;
+            ctx.fillText(config.oxygenLevel, statsX + 150, statsY + 70);
+            
+            // Stat 3: Grade
+            ctx.font = '14px Inter';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText("Bio-Efficiency Grade:", statsX, statsY + 100);
+            
+            // Draw Grade Badge
+            const grade = config.grade;
+            let gradeColor = ACCENT_COLOR;
+            if(grade === 'C' || grade === 'D') gradeColor = '#fbbf24'; 
+            
+            ctx.fillStyle = gradeColor;
+            ctx.font = 'bold 28px Inter';
+            ctx.fillText(grade, statsX + 170, statsY + 105); 
+            
+            // --- 3. FOOTER ---
+            ctx.font = 'italic 12px Inter';
+            ctx.fillStyle = '#64748b';
+            ctx.textAlign = 'center';
+            ctx.fillText("Data generated from single-run simulation parameters.", centerX, centerY + cardH/2 + 30);
+        }
+
+        window.onload = restartExperiment;
+
+    </script>
+</body>
+</html>
