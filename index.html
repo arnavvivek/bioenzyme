@@ -20,13 +20,14 @@
             --glass-color: rgba(255, 255, 255, 0.05);
             --glass-border: rgba(255, 255, 255, 0.4);
             --highlight-color: rgba(255, 255, 255, 0.15); 
+            --uv-color: rgba(168, 85, 247, 0.6); /* Brighter Violet */
+            --uv-glow: rgba(192, 132, 252, 0.9);
         }
 
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--primary-color);
             color: var(--text-color);
-            /* FIXED VIEWPORT - NO SCROLL */
             height: 100vh;
             width: 100vw;
             overflow: hidden;
@@ -44,18 +45,16 @@
             background-color: #1e293b;
             border-radius: 1rem;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            padding: 1.5vh 20px; /* Responsive vertical padding */
+            padding: 1.5vh 20px; 
             display: flex;
             flex-direction: column;
         }
 
-        /* Header section takes natural height */
         header {
             flex-shrink: 0;
             margin-bottom: 1vh;
         }
 
-        /* Main Card fills remaining space */
         .card {
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 0.75rem;
@@ -63,10 +62,10 @@
             background-color: #334155;
             box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
             width: 100%;
-            flex-grow: 1; /* Expand to fill height */
+            flex-grow: 1; 
             display: flex;
             flex-direction: column;
-            justify-content: center; /* Center canvas vertically */
+            justify-content: center; 
             align-items: center;
             overflow: hidden;
             position: relative;
@@ -76,15 +75,13 @@
             background-color: #0f172a;
             border-radius: 0.5rem;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.7);
-            /* Size set by JS */
         }
 
-        /* Controls section sits at bottom of card or below canvas */
         .controls-area {
             width: 100%;
-            flex-shrink: 0; /* Don't squash controls */
+            flex-shrink: 0; 
             padding-top: 1vh;
-            min-height: 100px; /* Reserve space */
+            min-height: 100px; 
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -138,7 +135,6 @@
             transition: width 0.5s ease-out;
         }
 
-        /* Custom Scrollbar for any internal overflow elements */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
@@ -154,14 +150,10 @@
             <p class="text-center text-xs text-subtle-text">Project: Algae-Based Oxygenation & Enzymatic Breakdown</p>
         </header>
 
-        <!-- Main Content Area -->
         <div class="card" id="mainCard">
             <canvas id="experimentCanvas"></canvas>
             
-            <!-- Dynamic Controls Container -->
             <div class="controls-area">
-                
-                <!-- Step 1: Setup -->
                 <div id="setupDiv" class="text-center w-full">
                     <div class="flex flex-col justify-center items-center gap-3 mb-3">
                         <div class="w-full max-w-md p-3 bg-slate-800/50 rounded-lg shadow-inner border border-slate-600 flex flex-col sm:flex-row items-center gap-2">
@@ -178,7 +170,6 @@
                     </button>
                 </div>
 
-                <!-- Step 2: Running -->
                 <div id="runningDiv" class="hidden text-center w-full">
                     <h2 class="text-base font-semibold text-accent-color mb-1">BIO-REACTION IN PROGRESS...</h2>
                     <div class="progress-bar-container mb-2 max-w-md mx-auto">
@@ -200,20 +191,17 @@
                     </div>
                 </div>
 
-                <!-- Step 3: Results -->
                 <div id="resultsDiv" class="hidden text-center w-full">
                     <h2 id="resultTitle" class="text-lg font-bold text-success-color mb-2">EXPERIMENT COMPLETE</h2>
                     <button class="btn-primary" onclick="restartExperiment()">
                         Reset Lab
                     </button>
                 </div>
-
             </div>
         </div>
     </div>
 
     <script>
-        // --- Canvas and DOM Setup ---
         const canvas = document.getElementById('experimentCanvas');
         const ctx = canvas.getContext('2d');
         const mainCard = document.getElementById('mainCard');
@@ -221,7 +209,6 @@
         const setupDiv = document.getElementById('setupDiv');
         const runningDiv = document.getElementById('runningDiv');
         const resultsDiv = document.getElementById('resultsDiv');
-        const resultTitle = document.getElementById('resultTitle');
         const phaseStatus = document.getElementById('phaseStatus');
         const progressBar = document.getElementById('progressBar');
         const algaeSelect = document.getElementById('algaeType');
@@ -231,7 +218,6 @@
         const metric2Gauge = document.getElementById('metric2Gauge');
         const metric2Value = document.getElementById('metric2Value');
 
-        // --- Color Constants ---
         const ACCENT_COLOR = '#4ade80';
         const PRIMARY_COLOR = '#0f172a';
         const CONTAMINANT_COLOR = '#451a03';
@@ -243,12 +229,17 @@
         const GLASS_COLOR = 'rgba(255, 255, 255, 0.05)'; 
         const GLASS_STROKE = 'rgba(255, 255, 255, 0.6)';
         const HIGHLIGHT_COLOR = 'rgba(255, 255, 255, 0.2)';
+        const UV_BEAM = 'rgba(168, 85, 247, 0.4)'; 
+        // FIXED: Added missing constants
+        const UV_DIODE_ON = '#d8b4fe';
+        const UV_DIODE_OFF = '#475569';
+        const UV_SHIELD = '#1e293b';
 
         // --- Simulation Logic ---
         const experimentPhases = [
             'Phase 1: Algae Photosynthesis...',
             'Phase 2: Oxygen Nucleation...',
-            'Phase 3: Bio-Degradation...'
+            'Phase 3: Bio-Degradation + UV-C...'
         ];
 
         const strainConfig = {
@@ -256,19 +247,22 @@
                 bubbleChance: 0.05, cleaningRate: 0.015, 
                 metric1: { width: '15%', text: '45 U/mL' },
                 metric2: { width: '20%', text: '1.2 mg/L' },
-                avgEfficiency: 15, timeTaken: '45s (Timeout)', oxygenLevel: 'Low', grade: 'D'
+                avgEfficiency: 15, timeTaken: '45s (Timeout)', oxygenLevel: 'Low', grade: 'D',
+                uvImpact: 'Blocked' // UV can't penetrate dark water
             },
             'active': { 
                 bubbleChance: 0.5, cleaningRate: 0.15, 
                 metric1: { width: '80%', text: '450 U/mL' },
                 metric2: { width: '92%', text: '8.4 mg/L' },
-                avgEfficiency: 94, timeTaken: '12.4s', oxygenLevel: 'Optimal', grade: 'A'
+                avgEfficiency: 94, timeTaken: '12.4s', oxygenLevel: 'Optimal', grade: 'A',
+                uvImpact: '99.9% Sterilized'
             },
             'hyper': { 
                 bubbleChance: 0.9, cleaningRate: 0.35, 
                 metric1: { width: '98%', text: '980 U/mL' },
                 metric2: { width: '99%', text: '14.5 mg/L' },
-                avgEfficiency: 99, timeTaken: '6.8s', oxygenLevel: 'Extreme', grade: 'A+'
+                avgEfficiency: 99, timeTaken: '6.8s', oxygenLevel: 'Extreme', grade: 'A+',
+                uvImpact: 'Total Eradication'
             }
         };
 
@@ -281,7 +275,6 @@
         let animationFrameId = null;
         let simulationRunning = false;
         
-        // --- FIT-TO-SCREEN GEOMETRY ---
         let scale = 1;
         const BASE_W = 800;
         const BASE_H = 520;
@@ -291,39 +284,20 @@
         let tube = { w: 24, h: 40 };
 
         function updateDimensions() {
-            // Get available space inside the card
-            // We subtract the height of the controls area (~180px safe buffer)
             const availW = mainCard.clientWidth;
             const availH = mainCard.clientHeight;
-            
-            // Reserve space for controls (dynamic depending on screen size)
             const uiBuffer = Math.min(180, availH * 0.3); 
-            
             const maxCanvasH = Math.max(200, availH - uiBuffer);
-            
-            // Calculate scales
             const scaleW = availW / BASE_W;
             const scaleH = maxCanvasH / BASE_H;
-            
-            // Use the smaller scale to ensure it fits in BOTH dimensions
             scale = Math.min(scaleW, scaleH);
             
             canvas.width = BASE_W * scale;
             canvas.height = BASE_H * scale;
-            
             const cx = canvas.width / 2;
             
-            // Recalculate Geometries
-            beaker = { 
-                w: 240 * scale, h: 280 * scale, x: cx, y: 40 * scale, 
-                r: 10 * scale, rimH: 15 * scale 
-            };
-            
-            reactor = { 
-                w: 280 * scale, h: 120 * scale, x: cx, 
-                y: (360 * scale) + (20 * scale), r: 20 * scale 
-            };
-            
+            beaker = { w: 240 * scale, h: 280 * scale, x: cx, y: 40 * scale, r: 10 * scale, rimH: 15 * scale };
+            reactor = { w: 280 * scale, h: 120 * scale, x: cx, y: (360 * scale) + (20 * scale), r: 20 * scale };
             tube = { w: 24 * scale, h: 40 * scale };
             reactor.y = beaker.y + beaker.h + tube.h - (5 * scale);
             
@@ -332,11 +306,10 @@
 
         function getFont(size, weight = '') {
             const scaledSize = size * scale;
-            const finalSize = Math.max(scaledSize, 10); // Min font size 10px
+            const finalSize = Math.max(scaledSize, 10); 
             return `${weight} ${finalSize}px Inter`;
         }
 
-        // --- Drawing Functions ---
         function drawGlasswarePath() {
             ctx.beginPath();
             const rimOverhang = 10 * scale;
@@ -346,7 +319,6 @@
             ctx.quadraticCurveTo(beaker.x - beaker.w/2, beaker.y + beaker.h, beaker.x - beaker.w/2 + beaker.r, beaker.y + beaker.h);
             ctx.lineTo(beaker.x - tube.w/2, beaker.y + beaker.h);
             ctx.lineTo(beaker.x - tube.w/2, beaker.y + beaker.h + tube.h);
-            
             ctx.lineTo(reactor.x - reactor.w/2 + reactor.r, reactor.y);
             ctx.quadraticCurveTo(reactor.x - reactor.w/2, reactor.y, reactor.x - reactor.w/2, reactor.y + reactor.r);
             ctx.lineTo(reactor.x - reactor.w/2, reactor.y + reactor.h - reactor.r);
@@ -355,10 +327,8 @@
             ctx.quadraticCurveTo(reactor.x + reactor.w/2, reactor.y + reactor.h, reactor.x + reactor.w/2, reactor.y + reactor.h - reactor.r);
             ctx.lineTo(reactor.x + reactor.w/2, reactor.y + reactor.r);
             ctx.quadraticCurveTo(reactor.x + reactor.w/2, reactor.y, reactor.x + reactor.w/2 - reactor.r, reactor.y);
-            
             ctx.lineTo(beaker.x + tube.w/2, beaker.y + beaker.h + tube.h);
             ctx.lineTo(beaker.x + tube.w/2, beaker.y + beaker.h);
-            
             ctx.lineTo(beaker.x + beaker.w/2 - beaker.r, beaker.y + beaker.h);
             ctx.quadraticCurveTo(beaker.x + beaker.w/2, beaker.y + beaker.h, beaker.x + beaker.w/2, beaker.y + beaker.h - beaker.r);
             ctx.lineTo(beaker.x + beaker.w/2, beaker.y + beaker.rimH);
@@ -388,10 +358,8 @@
             const halfH = (reactor.h/2) - (15*scale);
             const centerX = reactor.x;
             const centerY = reactor.y + (reactor.h/2);
-
             for(let p of algaeParticles) {
-                p.x += p.vx;
-                p.y += p.vy;
+                p.x += p.vx; p.y += p.vy;
                 if(p.x < centerX - halfW || p.x > centerX + halfW) p.vx *= -1;
                 if(p.y < centerY - halfH || p.y > centerY + halfH) p.vy *= -1;
             }
@@ -405,24 +373,36 @@
                     vx: (Math.random() - 0.5) * 3 * scale,
                     vy: (-Math.random() * 2 - 0.5) * scale,
                     r: (Math.random() * 3 + 1) * scale,
-                    opacity: 1.0, decay: 0.01 + Math.random() * 0.02
+                    opacity: 1.0, decay: 0.01 + Math.random() * 0.02,
+                    isZapped: false
                 });
             }
         }
 
         function updateDebris() {
+            const extraDecay = simulationRunning ? 0.02 : 0; // UV Effect
             for(let i = debrisParticles.length - 1; i >= 0; i--) {
                 let d = debrisParticles[i];
                 d.x += d.vx; d.y += d.vy;
-                d.opacity -= d.decay; d.vx *= 0.95;
+                d.opacity -= (d.decay + extraDecay); 
+                d.vx *= 0.95;
+                if(simulationRunning) d.isZapped = true; 
                 if(d.opacity <= 0) debrisParticles.splice(i, 1);
             }
         }
 
         function drawDebris() {
-            ctx.fillStyle = CONTAMINANT_COLOR;
             for(let d of debrisParticles) {
-                ctx.save(); ctx.globalAlpha = d.opacity;
+                ctx.save(); 
+                ctx.globalAlpha = d.opacity;
+                // UV IMPACT: Turn bright white/cyan if zapped
+                if(d.isZapped) {
+                    ctx.fillStyle = '#e879f9'; // UV Violet/Pink
+                    ctx.shadowColor = '#ffffff';
+                    ctx.shadowBlur = 5;
+                } else {
+                    ctx.fillStyle = CONTAMINANT_COLOR;
+                }
                 ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2);
                 ctx.fill(); ctx.restore();
             }
@@ -436,6 +416,97 @@
             }
         }
 
+        function drawUVSystem() {
+            // Dimensions
+            const housingW = 20 * scale;
+            const housingH = beaker.h * 0.7;
+            const housingY = beaker.y + (beaker.h - housingH)/2;
+            const diodeSize = 4 * scale;
+            const spacing = 15 * scale;
+            
+            const leftX = beaker.x - beaker.w/2 - housingW;
+            const rightX = beaker.x + beaker.w/2;
+
+            // 1. SHIELD (Housings) - Outer Layer
+            ctx.fillStyle = UV_SHIELD;
+            ctx.strokeStyle = GLASS_STROKE;
+            ctx.lineWidth = 1;
+            
+            // Left Shield
+            ctx.beginPath();
+            ctx.roundRect(leftX, housingY, housingW, housingH, [5*scale, 0, 0, 5*scale]);
+            ctx.fill(); ctx.stroke();
+            
+            // Right Shield
+            ctx.beginPath();
+            ctx.roundRect(rightX, housingY, housingW, housingH, [0, 5*scale, 5*scale, 0]);
+            ctx.fill(); ctx.stroke();
+
+            // 2. LED STRIPS (Inside the housing)
+            const stripW = 4 * scale;
+            const stripLeftX = leftX + housingW - stripW - (2*scale); // Inside edge
+            const stripRightX = rightX + (2*scale); 
+            
+            ctx.fillStyle = '#334155'; // PCB Color
+            ctx.fillRect(stripLeftX, housingY + 5*scale, stripW, housingH - 10*scale);
+            ctx.fillRect(stripRightX, housingY + 5*scale, stripW, housingH - 10*scale);
+
+            // 3. DIODES & BEAMS
+            const diodeCount = Math.floor((housingH - 10*scale) / spacing);
+            
+            for(let i=0; i<diodeCount; i++) {
+                const dy = housingY + 10*scale + (i * spacing);
+                
+                // Color check
+                ctx.fillStyle = simulationRunning ? UV_DIODE_ON : UV_DIODE_OFF;
+                if(simulationRunning) {
+                    ctx.shadowColor = UV_DIODE_ON;
+                    ctx.shadowBlur = 10;
+                }
+                
+                // Draw Diodes
+                ctx.beginPath(); ctx.arc(stripLeftX + stripW/2, dy, diodeSize/2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(stripRightX + stripW/2, dy, diodeSize/2, 0, Math.PI*2); ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 4. LIGHT BEAMS (Visible Rays)
+                if(simulationRunning) {
+                    ctx.save();
+                    // Only draw light inside the liquid area
+                    drawGlasswarePath();
+                    ctx.clip();
+                    
+                    // Beam Gradient
+                    const beamGrad = ctx.createLinearGradient(stripLeftX, dy, beaker.x, dy);
+                    beamGrad.addColorStop(0, UV_BEAM);
+                    beamGrad.addColorStop(1, 'transparent');
+                    
+                    // Left Beam
+                    ctx.fillStyle = beamGrad;
+                    ctx.beginPath();
+                    ctx.moveTo(stripLeftX + stripW, dy - 2*scale);
+                    ctx.lineTo(beaker.x, dy - 15*scale); // Spread out
+                    ctx.lineTo(beaker.x, dy + 15*scale);
+                    ctx.lineTo(stripLeftX + stripW, dy + 2*scale);
+                    ctx.fill();
+                    
+                    // Right Beam
+                    const beamGradR = ctx.createLinearGradient(stripRightX, dy, beaker.x, dy);
+                    beamGradR.addColorStop(0, UV_BEAM);
+                    beamGradR.addColorStop(1, 'transparent');
+                    ctx.fillStyle = beamGradR;
+                    ctx.beginPath();
+                    ctx.moveTo(stripRightX, dy - 2*scale);
+                    ctx.lineTo(beaker.x, dy - 15*scale);
+                    ctx.lineTo(beaker.x, dy + 15*scale);
+                    ctx.lineTo(stripRightX, dy + 2*scale);
+                    ctx.fill();
+                    
+                    ctx.restore();
+                }
+            }
+        }
+
         function drawGraduations() {
             ctx.fillStyle = GLASS_STROKE;
             ctx.textAlign = 'right';
@@ -444,7 +515,6 @@
             const endY = beaker.y + (40 * scale); 
             const steps = 5;
             const stepSize = (startY - endY) / steps;
-
             for(let i = 0; i <= steps; i++) {
                 const lineY = startY - (i * stepSize);
                 const vol = 100 + (i * 100); 
@@ -459,7 +529,6 @@
             ctx.fillStyle = PRIMARY_COLOR;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Liquids
             ctx.save();
             drawGlasswarePath();
             ctx.clip();
@@ -475,7 +544,6 @@
             ctx.fillStyle = ALGAE_COLOR;
             ctx.fillRect(beaker.x - tube.w/2, beaker.y + beaker.h, tube.w, tube.h);
 
-            // Water & Contaminant
             const pollutionRatio = contaminantHeight / maxContaminantHeight;
             const r = Math.round(200 - (100 * pollutionRatio));
             const g = Math.round(240 - (160 * pollutionRatio));
@@ -495,11 +563,14 @@
             const contaminantY = beaker.y + beaker.h - currentContamH;
             ctx.fillRect(beaker.x - beaker.w/2, contaminantY, beaker.w, currentContamH);
 
+            // Draw particles (zapped ones will glow)
             drawDebris(); 
             drawBubbles();
             ctx.restore();
 
-            // Glass & Highlights
+            // Draw UV Hardware ON TOP of liquid layer but BEHIND glass reflections
+            drawUVSystem();
+
             ctx.lineWidth = 4 * scale;
             ctx.strokeStyle = GLASS_STROKE;
             ctx.fillStyle = GLASS_COLOR;
@@ -514,7 +585,6 @@
             ctx.lineWidth = 3 * scale;
             ctx.strokeStyle = HIGHLIGHT_COLOR;
             ctx.stroke();
-            
             ctx.beginPath();
             ctx.moveTo(reactor.x - reactor.w/2 + 20*scale, reactor.y + 20*scale);
             ctx.arc(reactor.x - reactor.w/2 + 20*scale, reactor.y + 20*scale, 10*scale, Math.PI, 1.5 * Math.PI);
@@ -529,6 +599,11 @@
             ctx.fillText('Standard Griffin Beaker', beaker.x, beaker.y - 15*scale);
             ctx.fillStyle = ACCENT_COLOR;
             ctx.fillText('Algae Culture Tank', reactor.x, reactor.y + reactor.h + 25*scale);
+            
+            ctx.fillStyle = '#d8b4fe'; 
+            ctx.font = getFont(12, 'bold');
+            ctx.fillText('UV-C System', beaker.x - beaker.w/2 - 60*scale, beaker.y + beaker.h/2);
+            ctx.fillText('UV-C System', beaker.x + beaker.w/2 + 60*scale, beaker.y + beaker.h/2);
         }
 
         function createBubble() {
@@ -558,7 +633,6 @@
             for (let i = bubbles.length - 1; i >= 0; i--) {
                 const b = bubbles[i];
                 b.y -= b.speed;
-
                 if (b.y > beaker.y + beaker.h + tube.h) {
                     if (b.x < tubeLeft + 2*scale || b.x > tubeRight - 2*scale) {
                         if (b.y < reactor.y + 5*scale) {
@@ -567,7 +641,6 @@
                         }
                     }
                 }
-                
                 if (b.y < beaker.y + beaker.h) {
                     if (b.y <= cleaningSurfaceY && b.y > cleaningSurfaceY - 10*scale && !b.bursting) {
                         b.bursting = true;
@@ -576,12 +649,10 @@
                         spawnDebris(b.x, b.y);
                     }
                 }
-
                 if (b.bursting) {
                     b.burstTimer--;
                     if (b.burstTimer <= 0) bubbles.splice(i, 1);
-                } 
-                else if (b.y < beaker.y) {
+                } else if (b.y < beaker.y) {
                     bubbles.splice(i, 1);
                 }
             }
@@ -592,42 +663,32 @@
             for (const b of bubbles) {
                 if (b.bursting) {
                     ctx.fillStyle = `rgba(255, 255, 200, ${b.burstTimer / 8})`;
-                    ctx.beginPath();
-                    ctx.arc(b.x, b.y, b.radius * 3, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(b.x, b.y, b.radius * 3, 0, Math.PI * 2); ctx.fill();
                 } else {
                     ctx.fillStyle = BUBBLE_COLOR;
-                    ctx.beginPath();
-                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.beginPath(); ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); ctx.fill();
                 }
             }
         }
 
-        // --- Flow Control ---
         function startExperiment() {
             currentStrain = algaeSelect.value;
             setupDiv.classList.add('hidden');
             resultsDiv.classList.add('hidden');
             runningDiv.classList.remove('hidden');
-
             simulationRunning = true;
             contaminantHeight = 60; 
             bubbles = [];
             debrisParticles = []; 
             initAlgae(); 
-            
             let phaseIndex = 0;
             const totalDuration = 12000; 
             const phaseInterval = totalDuration / experimentPhases.length;
-
             animate();
-
             const phaseTimer = setInterval(() => {
                 if (phaseIndex < experimentPhases.length) {
                     phaseStatus.innerHTML = experimentPhases[phaseIndex];
                     progressBar.style.width = `${((phaseIndex + 1) / experimentPhases.length) * 100}%`;
-                    
                     const config = strainConfig[currentStrain];
                     if (phaseIndex === 0) {
                         metric1Gauge.style.width = config.metric1.width;
@@ -641,7 +702,6 @@
                     clearInterval(phaseTimer);
                 }
             }, phaseInterval);
-
             setTimeout(() => {
                 simulationRunning = false;
                 if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -671,17 +731,14 @@
             contaminantHeight = 60;
             simulationRunning = false;
             updateDimensions(); 
-            
             setupDiv.classList.remove('hidden');
             runningDiv.classList.add('hidden');
             resultsDiv.classList.add('hidden');
-            
             progressBar.style.width = '0%';
             metric1Gauge.style.width = '0%';
             metric1Value.textContent = '0 U/mL';
             metric2Gauge.style.width = '0%';
             metric2Value.textContent = '0 mg/L';
-            
             drawScene();
         }
         
@@ -697,8 +754,10 @@
 
             // Card Scales with Canvas
             const isCompact = canvas.width < 500 * scale;
-            const cardW = Math.min(580 * scale, canvas.width * 0.9);
-            const cardH = isCompact ? 400 * scale : 300 * scale;
+            // FIXED: Increased max width from 580 to 640 to accommodate longer text
+            const cardW = Math.min(640 * scale, canvas.width * 0.95);
+            // Increased height slightly to fit new data row
+            const cardH = isCompact ? 480 * scale : 360 * scale;
             
             ctx.fillStyle = '#1e293b';
             ctx.strokeStyle = GLASS_STROKE;
@@ -715,49 +774,42 @@
                 const statsY = centerY + 20 * scale; 
                 drawStatsText(centerX, statsY, config, true); 
             } else {
-                const gaugeX = centerX - (cardW * 0.25); 
+                // Desktop Layout Adjustments
+                // Move gauge slightly more left to balance the wider card
+                const gaugeX = centerX - (cardW * 0.22); 
                 const radius = 75 * scale;
-                drawGauge(gaugeX, centerY - 15*scale, radius, efficiency);
-                const statsX = centerX + (20 * scale);
-                const statsY = centerY - (60 * scale);
+                drawGauge(gaugeX, centerY - 20*scale, radius, efficiency);
+                
+                // Move text block start position closer to center
+                const statsX = centerX + (15 * scale);
+                const statsY = centerY - (85 * scale); 
                 drawStatsText(statsX, statsY, config, false);
             }
 
             ctx.font = getFont(12, 'italic');
             ctx.fillStyle = '#64748b';
             ctx.textAlign = 'center';
-            ctx.fillText("Data generated from single-run simulation parameters.", centerX, centerY + cardH/2 + (25 * scale));
+            ctx.fillText("Data generated from single-run simulation parameters.", centerX, centerY + cardH/2 - (20 * scale));
         }
         
         function drawGauge(x, y, r, efficiency) {
-            ctx.beginPath();
-            ctx.arc(x, y, r, 0, Math.PI * 2);
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 12 * scale; 
-            ctx.stroke();
-            
+            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.strokeStyle = '#334155'; ctx.lineWidth = 12 * scale; ctx.stroke();
             const startAngle = -Math.PI / 2;
             const endAngle = startAngle + (Math.PI * 2 * (efficiency / 100));
-            ctx.beginPath();
-            ctx.arc(x, y, r, startAngle, endAngle);
-            ctx.strokeStyle = ACCENT_COLOR;
-            ctx.lineWidth = 12 * scale;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-            
+            ctx.beginPath(); ctx.arc(x, y, r, startAngle, endAngle);
+            ctx.strokeStyle = ACCENT_COLOR; ctx.lineWidth = 12 * scale; ctx.lineCap = 'round'; ctx.stroke();
             ctx.fillStyle = TEXT_COLOR;
-            ctx.font = getFont(42, 'bold'); 
-            ctx.textAlign = 'center';
+            ctx.font = getFont(42, 'bold'); ctx.textAlign = 'center';
             ctx.fillText(`${efficiency}%`, x, y + (15*scale)); 
-            
-            ctx.font = getFont(14);
-            ctx.fillStyle = '#94a3b8';
+            ctx.font = getFont(14); ctx.fillStyle = '#94a3b8';
             ctx.fillText("Contaminant Removed", x, y + r + (30*scale));
         }
         
         function drawStatsText(x, y, config, centerAlign) {
             ctx.textAlign = centerAlign ? 'center' : 'left';
-            const valOffset = 150 * scale;
+            // FIXED: Reduced offset from 150 to 145 to tighten the gap
+            const valOffset = 145 * scale;
             
             ctx.font = getFont(20, 'bold');
             ctx.fillStyle = ACCENT_COLOR;
@@ -770,33 +822,52 @@
             
             const row1Y = y + 40*scale;
             const row2Y = y + 70*scale;
-            const row3Y = y + 100*scale;
+            const row3Y = y + 100*scale; 
+            const row4Y = y + 150*scale; 
             
             if (centerAlign) {
                 ctx.font = getFont(14); ctx.fillStyle = '#94a3b8';
                 ctx.fillText(`Time: ${config.timeTaken} | Oxygen: ${config.oxygenLevel}`, x, row1Y);
-                ctx.fillText("Bio-Efficiency Grade:", x, row2Y);
+                
+                ctx.fillStyle = '#d8b4fe'; 
+                ctx.fillText(`UV Impact: ${config.uvImpact}`, x, row2Y);
+                
+                ctx.fillStyle = '#94a3b8';
+                ctx.fillText("Bio-Efficiency Grade:", x, row3Y + 10*scale);
+                
                 const grade = config.grade;
                 let gradeColor = ACCENT_COLOR;
                 if(grade === 'C' || grade === 'D') gradeColor = '#fbbf24'; 
                 ctx.font = getFont(28, 'bold'); ctx.fillStyle = gradeColor;
-                ctx.fillText(grade, x, row3Y + 5*scale);
+                ctx.fillText(grade, x, row4Y);
+                
             } else {
+                // Row 1: Time
                 ctx.font = getFont(14); ctx.fillStyle = '#94a3b8';
                 ctx.fillText("Processing Time:", x, row1Y);
                 ctx.font = getFont(16, 'bold'); ctx.fillStyle = TEXT_COLOR;
                 ctx.fillText(config.timeTaken, x + valOffset, row1Y);
+                
+                // Row 2: Oxygen
                 ctx.font = getFont(14); ctx.fillStyle = '#94a3b8';
                 ctx.fillText("Oxygen Saturation:", x, row2Y);
                 ctx.font = getFont(16, 'bold'); ctx.fillStyle = TEXT_COLOR;
                 ctx.fillText(config.oxygenLevel, x + valOffset, row2Y);
+                
+                // Row 3: UV Impact
+                ctx.font = getFont(14); ctx.fillStyle = '#d8b4fe'; 
+                ctx.fillText("UV-C Impact:", x, row3Y);
+                ctx.font = getFont(16, 'bold'); ctx.fillStyle = '#e9d5ff'; 
+                ctx.fillText(config.uvImpact, x + valOffset, row3Y);
+                
+                // Row 4: Grade
                 ctx.font = getFont(14); ctx.fillStyle = '#94a3b8';
-                ctx.fillText("Bio-Efficiency Grade:", x, row3Y);
+                ctx.fillText("Bio-Efficiency Grade:", x, row4Y);
                 const grade = config.grade;
                 let gradeColor = ACCENT_COLOR;
                 if(grade === 'C' || grade === 'D') gradeColor = '#fbbf24'; 
                 ctx.font = getFont(28, 'bold'); ctx.fillStyle = gradeColor;
-                ctx.fillText(grade, x + valOffset + (20*scale), row3Y + 5*scale);
+                ctx.fillText(grade, x + valOffset + (20*scale), row4Y + 5*scale);
             }
         }
 
